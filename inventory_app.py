@@ -13,7 +13,8 @@ class InventoryApp:
         self.root = root
         self.root.title("Sistema de Gestión de Inventarios")
         self.inventory_file = "inventory_data.json"
-        self.users = {"admin": self.hash_password("admin123"), "user": self.hash_password("user123")}
+        self.users_file = "users.json"
+        self.load_users()
 
         # Datos del inventario
         self.inventory = []
@@ -24,6 +25,18 @@ class InventoryApp:
 
     def hash_password(self, password):
         return hashlib.sha256(password.encode()).hexdigest()
+
+    def load_users(self):
+        if os.path.exists(self.users_file):
+            with open(self.users_file, "r", encoding="utf-8") as f:
+                self.users = json.load(f)
+        else:
+            self.users = {"admin": self.hash_password("admin123"), "user": self.hash_password("user123")}
+            self.save_users()
+
+    def save_users(self):
+        with open(self.users_file, "w", encoding="utf-8") as f:
+            json.dump(self.users, f, ensure_ascii=False, indent=4)
 
     def show_login_screen(self):
         self.login_frame = ttk.Frame(self.root)
@@ -37,7 +50,45 @@ class InventoryApp:
         self.entry_password = ttk.Entry(self.login_frame, show="*", bootstyle=INFO)
         self.entry_password.grid(row=1, column=1, padx=5, pady=5)
 
-        ttk.Button(self.login_frame, text="Iniciar Sesión", command=self.authenticate_user, bootstyle=SUCCESS).grid(row=2, column=0, columnspan=2, pady=10)
+        ttk.Button(self.login_frame, text="Iniciar Sesión", command=self.authenticate_user, bootstyle=SUCCESS).grid(row=2, column=0, pady=10)
+        ttk.Button(self.login_frame, text="Registrarse", command=self.show_register_screen, bootstyle=PRIMARY).grid(row=2, column=1, pady=10)
+
+    def show_register_screen(self):
+        self.login_frame.destroy()
+        self.register_frame = ttk.Frame(self.root)
+        self.register_frame.grid(row=0, column=0, padx=10, pady=10)
+
+        ttk.Label(self.register_frame, text="Nuevo Usuario:").grid(row=0, column=0, padx=5, pady=5)
+        self.entry_new_user = ttk.Entry(self.register_frame, bootstyle=INFO)
+        self.entry_new_user.grid(row=0, column=1, padx=5, pady=5)
+
+        ttk.Label(self.register_frame, text="Nueva Contraseña:").grid(row=1, column=0, padx=5, pady=5)
+        self.entry_new_password = ttk.Entry(self.register_frame, show="*", bootstyle=INFO)
+        self.entry_new_password.grid(row=1, column=1, padx=5, pady=5)
+
+        ttk.Button(self.register_frame, text="Registrar", command=self.register_user, bootstyle=SUCCESS).grid(row=2, column=0, pady=10)
+        ttk.Button(self.register_frame, text="Volver", command=self.back_to_login, bootstyle=PRIMARY).grid(row=2, column=1, pady=10)
+
+    def register_user(self):
+        new_user = self.entry_new_user.get()
+        new_password = self.entry_new_password.get()
+
+        if not new_user or not new_password:
+            messagebox.showerror("Error", "Todos los campos son obligatorios")
+            return
+
+        if new_user in self.users:
+            messagebox.showerror("Error", "El usuario ya existe")
+            return
+
+        self.users[new_user] = self.hash_password(new_password)
+        self.save_users()
+        messagebox.showinfo("Éxito", "Usuario registrado correctamente")
+        self.back_to_login()
+
+    def back_to_login(self):
+        self.register_frame.destroy()
+        self.show_login_screen()
 
     def authenticate_user(self):
         username = self.entry_user.get()
