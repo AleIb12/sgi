@@ -6,19 +6,49 @@ import pandas as pd
 import json
 import tkinter as tk
 from tkinter import messagebox, filedialog
+import hashlib
 
 class InventoryApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Sistema de Gestión de Inventarios")
         self.inventory_file = "inventory_data.json"
+        self.users = {"admin": self.hash_password("admin123"), "user": self.hash_password("user123")}
 
         # Datos del inventario
         self.inventory = []
         self.load_inventory()
 
-        # Configuración de la interfaz
-        self.setup_ui()
+        # Pantalla de inicio de sesión
+        self.show_login_screen()
+
+    def hash_password(self, password):
+        return hashlib.sha256(password.encode()).hexdigest()
+
+    def show_login_screen(self):
+        self.login_frame = ttk.Frame(self.root)
+        self.login_frame.grid(row=0, column=0, padx=10, pady=10)
+
+        ttk.Label(self.login_frame, text="Usuario:").grid(row=0, column=0, padx=5, pady=5)
+        self.entry_user = ttk.Entry(self.login_frame, bootstyle=INFO)
+        self.entry_user.grid(row=0, column=1, padx=5, pady=5)
+
+        ttk.Label(self.login_frame, text="Contraseña:").grid(row=1, column=0, padx=5, pady=5)
+        self.entry_password = ttk.Entry(self.login_frame, show="*", bootstyle=INFO)
+        self.entry_password.grid(row=1, column=1, padx=5, pady=5)
+
+        ttk.Button(self.login_frame, text="Iniciar Sesión", command=self.authenticate_user, bootstyle=SUCCESS).grid(row=2, column=0, columnspan=2, pady=10)
+
+    def authenticate_user(self):
+        username = self.entry_user.get()
+        password = self.entry_password.get()
+        hashed_password = self.hash_password(password)
+
+        if username in self.users and self.users[username] == hashed_password:
+            self.login_frame.destroy()
+            self.setup_ui()
+        else:
+            messagebox.showerror("Error", "Usuario o contraseña incorrectos")
 
     def setup_ui(self):
         # Frame para agregar productos

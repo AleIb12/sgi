@@ -6,6 +6,9 @@ Este proyecto es una aplicación sencilla para gestionar inventarios con una int
 
 ## 🚀 Características
 
+- **Inicio de sesión**: Acceso seguro con usuarios y contraseñas por defecto:
+  - Usuario: `admin`, Contraseña: `admin123`
+  - Usuario: `user`, Contraseña: `user123`
 - **Agregar productos**: Registra productos con nombre, cantidad y precio.
 - **Importar y exportar**: Maneja datos en formatos Excel y JSON.
 - **Persistencia local**: Guarda automáticamente los datos en un archivo `inventory_data.json`.
@@ -30,7 +33,8 @@ pip install ttkbootstrap pandas
    ```bash
    python inventory_app.py
    ```
-2. Usa la interfaz para:
+2. Inicia sesión con uno de los usuarios por defecto.
+3. Usa la interfaz para:
    - Agregar productos.
    - Importar o exportar datos.
    - Enviar o recibir el inventario por red.
