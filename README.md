@@ -8,8 +8,8 @@ Este proyecto es una aplicación sencilla para gestionar inventarios con una int
 
 - **Agregar productos**: Registra productos con nombre, cantidad y precio.
 - **Importar y exportar**: Maneja datos en formatos Excel y JSON.
-- **Persistencia local**: Guarda automáticamente los datos en un archivo JSON.
-- **Envío por red**: Comparte el inventario con otros usuarios en la misma red.
+- **Persistencia local**: Guarda automáticamente los datos en un archivo `inventory_data.json`.
+- **Envío y recepción por red**: Comparte el inventario con otros usuarios en la misma red.
 - **Interfaz moderna**: Diseñada con ttkbootstrap para una experiencia visual mejorada.
 
 ## 🛠️ Requisitos
@@ -33,12 +33,13 @@ pip install ttkbootstrap pandas
 2. Usa la interfaz para:
    - Agregar productos.
    - Importar o exportar datos.
-   - Enviar el inventario por red.
+   - Enviar o recibir el inventario por red.
 
 ## 📂 Estructura del proyecto
 
 - `inventory_app.py`: Código principal de la aplicación.
 - `inventory_data.json`: Archivo donde se guardan los datos del inventario.
+- `README.md`: Documentación del proyecto.
 
 ## 💻 Captura de pantalla
 

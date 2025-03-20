@@ -4,6 +4,8 @@ import socket
 import os
 import pandas as pd
 import json
+import tkinter as tk
+from tkinter import messagebox, filedialog
 
 class InventoryApp:
     def __init__(self, root):
@@ -44,7 +46,7 @@ class InventoryApp:
         self.tree.heading("Precio", text="Precio")
         self.tree.grid(row=1, column=0, padx=10, pady=10)
 
-        # Botones para importar, exportar y enviar
+        # Botones para importar, exportar, enviar y recibir
         frame_actions = ttk.Frame(self.root)
         frame_actions.grid(row=2, column=0, pady=10)
 
@@ -53,6 +55,7 @@ class InventoryApp:
         ttk.Button(frame_actions, text="Exportar a Excel", command=self.export_to_excel, bootstyle=PRIMARY).grid(row=0, column=2, padx=5)
         ttk.Button(frame_actions, text="Exportar a JSON", command=self.export_to_json, bootstyle=PRIMARY).grid(row=0, column=3, padx=5)
         ttk.Button(frame_actions, text="Enviar por Red", command=self.send_inventory, bootstyle=WARNING).grid(row=0, column=4, padx=5)
+        ttk.Button(frame_actions, text="Recibir por Red", command=self.receive_inventory, bootstyle=WARNING).grid(row=0, column=5, padx=5)
 
     def add_product(self):
         name = self.entry_name.get()
@@ -60,14 +63,14 @@ class InventoryApp:
         price = self.entry_price.get()
 
         if not name or not quantity or not price:
-            ttk.Messagebox.show_error("Todos los campos son obligatorios", title="Error")
+            messagebox.showerror("Error", "Todos los campos son obligatorios")
             return
 
         try:
             quantity = int(quantity)
             price = float(price)
         except ValueError:
-            ttk.Messagebox.show_error("Cantidad debe ser un número entero y Precio un número decimal", title="Error")
+            messagebox.showerror("Error", "Cantidad debe ser un número entero y Precio un número decimal")
             return
 
         self.inventory.append({"Nombre": name, "Cantidad": quantity, "Precio": price})
@@ -96,38 +99,59 @@ class InventoryApp:
                 s.connect((host, port))
                 data = json.dumps(self.inventory).encode("utf-8")
                 s.sendall(data)
-                ttk.Messagebox.show_info("Inventario enviado correctamente", title="Éxito")
+                messagebox.showinfo("Éxito", "Inventario enviado correctamente")
         except Exception as e:
-            ttk.Messagebox.show_error(f"Error al enviar el inventario: {e}", title="Error")
+            messagebox.showerror("Error", f"Error al enviar el inventario: {e}")
+
+    def receive_inventory(self):
+        host = "0.0.0.0"  # Escuchar en todas las interfaces de red
+        port = 12345
+
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.bind((host, port))
+                s.listen(1)
+                messagebox.showinfo("Esperando conexión", f"Esperando conexión en el puerto {port}...")
+                conn, addr = s.accept()
+                with conn:
+                    data = conn.recv(1024 * 1024)  # Recibir hasta 1 MB de datos
+                    received_inventory = json.loads(data.decode("utf-8"))
+                    for product in received_inventory:
+                        self.inventory.append(product)
+                        self.tree.insert("", "end", values=(product["Nombre"], product["Cantidad"], product["Precio"]))
+                    self.save_inventory()
+                    messagebox.showinfo("Éxito", "Inventario recibido correctamente")
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al recibir el inventario: {e}")
 
     def export_to_excel(self):
         if not self.inventory:
-            ttk.Messagebox.show_error("El inventario está vacío", title="Error")
+            messagebox.showerror("Error", "El inventario está vacío")
             return
 
-        file_path = ttk.filedialog.asksaveasfilename(defaultextension=".xlsx", filetypes=[("Archivos Excel", "*.xlsx")])
+        file_path = filedialog.asksaveasfilename(defaultextension=".xlsx", filetypes=[("Archivos Excel", "*.xlsx")])
         if not file_path:
             return
 
         df = pd.DataFrame(self.inventory)
         df.to_excel(file_path, index=False)
-        ttk.Messagebox.show_info("Inventario exportado a Excel correctamente", title="Éxito")
+        messagebox.showinfo("Éxito", "Inventario exportado a Excel correctamente")
 
     def export_to_json(self):
         if not self.inventory:
-            ttk.Messagebox.show_error("El inventario está vacío", title="Error")
+            messagebox.showerror("Error", "El inventario está vacío")
             return
 
-        file_path = ttk.filedialog.asksaveasfilename(defaultextension=".json", filetypes=[("Archivos JSON", "*.json")])
+        file_path = filedialog.asksaveasfilename(defaultextension=".json", filetypes=[("Archivos JSON", "*.json")])
         if not file_path:
             return
 
         with open(file_path, "w", encoding="utf-8") as f:
             json.dump(self.inventory, f, ensure_ascii=False, indent=4)
-        ttk.Messagebox.show_info("Inventario exportado a JSON correctamente", title="Éxito")
+        messagebox.showinfo("Éxito", "Inventario exportado a JSON correctamente")
 
     def import_from_excel(self):
-        file_path = ttk.filedialog.askopenfilename(filetypes=[("Archivos Excel", "*.xlsx")])
+        file_path = filedialog.askopenfilename(filetypes=[("Archivos Excel", "*.xlsx")])
         if not file_path:
             return
 
@@ -141,12 +165,12 @@ class InventoryApp:
                 }
                 self.inventory.append(product)
                 self.tree.insert("", "end", values=(product["Nombre"], product["Cantidad"], product["Precio"]))
-            ttk.Messagebox.show_info("Inventario importado desde Excel correctamente", title="Éxito")
+            messagebox.showinfo("Éxito", "Inventario importado desde Excel correctamente")
         except Exception as e:
-            ttk.Messagebox.show_error(f"No se pudo importar el archivo: {e}", title="Error")
+            messagebox.showerror("Error", f"No se pudo importar el archivo: {e}")
 
     def import_from_json(self):
-        file_path = ttk.filedialog.askopenfilename(filetypes=[("Archivos JSON", "*.json")])
+        file_path = filedialog.askopenfilename(filetypes=[("Archivos JSON", "*.json")])
         if not file_path:
             return
 
@@ -156,9 +180,9 @@ class InventoryApp:
                 for product in data:
                     self.inventory.append(product)
                     self.tree.insert("", "end", values=(product["Nombre"], product["Cantidad"], product["Precio"]))
-            ttk.Messagebox.show_info("Inventario importado desde JSON correctamente", title="Éxito")
+            messagebox.showinfo("Éxito", "Inventario importado desde JSON correctamente")
         except Exception as e:
-            ttk.Messagebox.show_error(f"No se pudo importar el archivo: {e}", title="Error")
+            messagebox.showerror("Error", f"No se pudo importar el archivo: {e}")
 
 if __name__ == "__main__":
     app = ttk.Window(themename="darkly")
