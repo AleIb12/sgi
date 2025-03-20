@@ -96,6 +96,7 @@ class InventoryApp:
         hashed_password = self.hash_password(password)
 
         if username in self.users and self.users[username] == hashed_password:
+            self.current_user = username
             self.login_frame.destroy()
             self.setup_ui()
         else:
@@ -127,7 +128,7 @@ class InventoryApp:
         self.tree.heading("Precio", text="Precio")
         self.tree.grid(row=1, column=0, padx=10, pady=10)
 
-        # Botones para importar, exportar, enviar, recibir y chatear
+        # Botones para importar, exportar, enviar, recibir, chatear y cambiar contraseña
         frame_actions = ttk.Frame(self.root)
         frame_actions.grid(row=2, column=0, pady=10)
 
@@ -138,6 +139,35 @@ class InventoryApp:
         ttk.Button(frame_actions, text="Enviar por Red", command=self.send_inventory, bootstyle=WARNING).grid(row=0, column=4, padx=5)
         ttk.Button(frame_actions, text="Recibir por Red", command=self.receive_inventory, bootstyle=WARNING).grid(row=0, column=5, padx=5)
         ttk.Button(frame_actions, text="Chatear", command=self.open_chat_window, bootstyle=INFO).grid(row=0, column=6, padx=5)
+        ttk.Button(frame_actions, text="Cambiar Contraseña", command=self.show_change_password_screen, bootstyle=INFO).grid(row=0, column=7, padx=5)
+
+        if self.current_user == "admin":
+            ttk.Button(frame_actions, text="Borrar Usuario", command=self.show_delete_user_screen, bootstyle=DANGER).grid(row=0, column=8, padx=5)
+
+    def show_delete_user_screen(self):
+        self.delete_user_frame = ttk.Toplevel(self.root)
+        self.delete_user_frame.title("Borrar Usuario")
+
+        ttk.Label(self.delete_user_frame, text="Usuario a borrar:").grid(row=0, column=0, padx=5, pady=5)
+        self.entry_delete_user = ttk.Entry(self.delete_user_frame, bootstyle=INFO)
+        self.entry_delete_user.grid(row=0, column=1, padx=5, pady=5)
+
+        ttk.Button(self.delete_user_frame, text="Borrar", command=self.delete_user, bootstyle=DANGER).grid(row=1, column=0, columnspan=2, pady=10)
+
+    def delete_user(self):
+        user_to_delete = self.entry_delete_user.get()
+
+        if user_to_delete == "admin":
+            messagebox.showerror("Error", "No se puede borrar el usuario admin")
+            return
+
+        if user_to_delete in self.users:
+            del self.users[user_to_delete]
+            self.save_users()
+            messagebox.showinfo("Éxito", f"Usuario '{user_to_delete}' borrado correctamente")
+            self.delete_user_frame.destroy()
+        else:
+            messagebox.showerror("Error", "El usuario no existe")
 
     def open_chat_window(self):
         self.chat_window = tk.Toplevel(self.root)
@@ -319,6 +349,46 @@ class InventoryApp:
             messagebox.showinfo("Éxito", "Inventario importado desde JSON correctamente")
         except Exception as e:
             messagebox.showerror("Error", f"No se pudo importar el archivo: {e}")
+
+    def show_change_password_screen(self):
+        self.change_password_frame = ttk.Toplevel(self.root)
+        self.change_password_frame.title("Cambiar Contraseña")
+
+        ttk.Label(self.change_password_frame, text="Contraseña Actual:").grid(row=0, column=0, padx=5, pady=5)
+        self.entry_current_password = ttk.Entry(self.change_password_frame, show="*", bootstyle=INFO)
+        self.entry_current_password.grid(row=0, column=1, padx=5, pady=5)
+
+        ttk.Label(self.change_password_frame, text="Nueva Contraseña:").grid(row=1, column=0, padx=5, pady=5)
+        self.entry_new_password = ttk.Entry(self.change_password_frame, show="*", bootstyle=INFO)
+        self.entry_new_password.grid(row=1, column=1, padx=5, pady=5)
+
+        ttk.Label(self.change_password_frame, text="Confirmar Contraseña:").grid(row=2, column=0, padx=5, pady=5)
+        self.entry_confirm_password = ttk.Entry(self.change_password_frame, show="*", bootstyle=INFO)
+        self.entry_confirm_password.grid(row=2, column=1, padx=5, pady=5)
+
+        ttk.Button(self.change_password_frame, text="Cambiar", command=self.change_password, bootstyle=SUCCESS).grid(row=3, column=0, columnspan=2, pady=10)
+
+    def change_password(self):
+        current_password = self.entry_current_password.get()
+        new_password = self.entry_new_password.get()
+        confirm_password = self.entry_confirm_password.get()
+
+        if not current_password or not new_password or not confirm_password:
+            messagebox.showerror("Error", "Todos los campos son obligatorios")
+            return
+
+        if self.hash_password(current_password) != self.users[self.current_user]:
+            messagebox.showerror("Error", "La contraseña actual es incorrecta")
+            return
+
+        if new_password != confirm_password:
+            messagebox.showerror("Error", "Las contraseñas no coinciden")
+            return
+
+        self.users[self.current_user] = self.hash_password(new_password)
+        self.save_users()
+        messagebox.showinfo("Éxito", "Contraseña cambiada correctamente")
+        self.change_password_frame.destroy()
 
 if __name__ == "__main__":
     app = ttk.Window(themename="darkly")

@@ -10,6 +10,8 @@ Este proyecto es una aplicación sencilla para gestionar inventarios con una int
   - Usuario: `admin`, Contraseña: `admin123`
   - Usuario: `user`, Contraseña: `user123`
 - **Registro de nuevos usuarios**: Permite a nuevos usuarios registrarse con un nombre y contraseña.
+- **Cambio de contraseña**: Los usuarios pueden cambiar su contraseña desde la interfaz.
+- **Eliminación de usuarios**: Solo el usuario `admin` puede eliminar usuarios.
 - **Agregar productos**: Registra productos con nombre, cantidad y precio.
 - **Importar y exportar**: Maneja datos en formatos Excel y JSON.
 - **Persistencia local**: Guarda automáticamente los datos en un archivo `inventory_data.json`.
@@ -41,6 +43,8 @@ pip install ttkbootstrap pandas
    - Importar o exportar datos.
    - Enviar o recibir el inventario por red.
    - Abrir la ventana de chat para comunicarte con otros usuarios.
+   - Cambiar tu contraseña.
+   - (Solo admin) Eliminar usuarios.
 
 ## 📂 Estructura del proyecto
 
