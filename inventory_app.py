@@ -76,7 +76,7 @@ class InventoryApp:
         self.tree.heading("Precio", text="Precio")
         self.tree.grid(row=1, column=0, padx=10, pady=10)
 
-        # Botones para importar, exportar, enviar y recibir
+        # Botones para importar, exportar, enviar, recibir y chatear
         frame_actions = ttk.Frame(self.root)
         frame_actions.grid(row=2, column=0, pady=10)
 
@@ -86,6 +86,61 @@ class InventoryApp:
         ttk.Button(frame_actions, text="Exportar a JSON", command=self.export_to_json, bootstyle=PRIMARY).grid(row=0, column=3, padx=5)
         ttk.Button(frame_actions, text="Enviar por Red", command=self.send_inventory, bootstyle=WARNING).grid(row=0, column=4, padx=5)
         ttk.Button(frame_actions, text="Recibir por Red", command=self.receive_inventory, bootstyle=WARNING).grid(row=0, column=5, padx=5)
+        ttk.Button(frame_actions, text="Chatear", command=self.open_chat_window, bootstyle=INFO).grid(row=0, column=6, padx=5)
+
+    def open_chat_window(self):
+        self.chat_window = tk.Toplevel(self.root)
+        self.chat_window.title("Chat")
+
+        self.chat_display = tk.Text(self.chat_window, state="disabled", width=50, height=20)
+        self.chat_display.grid(row=0, column=0, padx=10, pady=10, columnspan=2)
+
+        self.chat_entry = ttk.Entry(self.chat_window, width=40)
+        self.chat_entry.grid(row=1, column=0, padx=10, pady=10)
+
+        ttk.Button(self.chat_window, text="Enviar", command=self.send_message, bootstyle=SUCCESS).grid(row=1, column=1, padx=10, pady=10)
+
+        self.start_chat_server()
+
+    def start_chat_server(self):
+        def server_thread():
+            self.chat_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.chat_socket.bind(("0.0.0.0", 12346))
+            self.chat_socket.listen(1)
+            self.chat_connection, _ = self.chat_socket.accept()
+            self.receive_messages()
+
+        import threading
+        threading.Thread(target=server_thread, daemon=True).start()
+
+    def send_message(self):
+        if not hasattr(self, 'chat_connection') or self.chat_connection is None:
+            messagebox.showerror("Error", "No hay conexión activa para enviar mensajes.")
+            return
+
+        message = self.chat_entry.get()
+        if message:
+            self.chat_connection.sendall(message.encode("utf-8"))
+            self.display_message(f"Tú: {message}")
+            self.chat_entry.delete(0, tk.END)
+
+    def receive_messages(self):
+        def listen_for_messages():
+            while True:
+                try:
+                    message = self.chat_connection.recv(1024).decode("utf-8")
+                    if message:
+                        self.display_message(f"Otro: {message}")
+                except Exception as e:
+                    break
+
+        import threading
+        threading.Thread(target=listen_for_messages, daemon=True).start()
+
+    def display_message(self, message):
+        self.chat_display.config(state="normal")
+        self.chat_display.insert(tk.END, message + "\n")
+        self.chat_display.config(state="disabled")
 
     def add_product(self):
         name = self.entry_name.get()
