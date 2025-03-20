@@ -5,7 +5,7 @@ import os
 import pandas as pd
 import json
 import tkinter as tk
-from tkinter import messagebox, filedialog
+from tkinter import messagebox, filedialog, PhotoImage
 import hashlib
 
 class InventoryApp:
@@ -29,9 +29,19 @@ class InventoryApp:
     def load_users(self):
         if os.path.exists(self.users_file):
             with open(self.users_file, "r", encoding="utf-8") as f:
-                self.users = json.load(f)
+                raw_users = json.load(f)
+                self.users = {}
+                for username, data in raw_users.items():
+                    if isinstance(data, str):
+                        # Convertir formato antiguo a nuevo
+                        self.users[username] = {"password": data, "profile_image": ""}
+                    else:
+                        self.users[username] = data
         else:
-            self.users = {"admin": self.hash_password("admin123"), "user": self.hash_password("user123")}
+            self.users = {
+                "admin": {"password": self.hash_password("admin"), "profile_image": ""},
+                "user": {"password": self.hash_password("user123"), "profile_image": ""}
+            }
             self.save_users()
 
     def save_users(self):
@@ -66,12 +76,23 @@ class InventoryApp:
         self.entry_new_password = ttk.Entry(self.register_frame, show="*", bootstyle=INFO)
         self.entry_new_password.grid(row=1, column=1, padx=5, pady=5)
 
-        ttk.Button(self.register_frame, text="Registrar", command=self.register_user, bootstyle=SUCCESS).grid(row=2, column=0, pady=10)
-        ttk.Button(self.register_frame, text="Volver", command=self.back_to_login, bootstyle=PRIMARY).grid(row=2, column=1, pady=10)
+        ttk.Label(self.register_frame, text="Imagen de Perfil:").grid(row=2, column=0, padx=5, pady=5)
+        self.profile_image_path = tk.StringVar()
+        ttk.Entry(self.register_frame, textvariable=self.profile_image_path, bootstyle=INFO).grid(row=2, column=1, padx=5, pady=5)
+        ttk.Button(self.register_frame, text="Seleccionar", command=self.select_profile_image, bootstyle=PRIMARY).grid(row=2, column=2, padx=5, pady=5)
+
+        ttk.Button(self.register_frame, text="Registrar", command=self.register_user, bootstyle=SUCCESS).grid(row=3, column=0, pady=10)
+        ttk.Button(self.register_frame, text="Volver", command=self.back_to_login, bootstyle=PRIMARY).grid(row=3, column=1, pady=10)
+
+    def select_profile_image(self):
+        file_path = filedialog.askopenfilename(filetypes=[("Imágenes", "*.png;*.jpg;*.jpeg")])
+        if file_path:
+            self.profile_image_path.set(file_path)
 
     def register_user(self):
         new_user = self.entry_new_user.get()
         new_password = self.entry_new_password.get()
+        profile_image = self.profile_image_path.get()
 
         if not new_user or not new_password:
             messagebox.showerror("Error", "Todos los campos son obligatorios")
@@ -81,7 +102,10 @@ class InventoryApp:
             messagebox.showerror("Error", "El usuario ya existe")
             return
 
-        self.users[new_user] = self.hash_password(new_password)
+        self.users[new_user] = {
+            "password": self.hash_password(new_password),
+            "profile_image": profile_image
+        }
         self.save_users()
         messagebox.showinfo("Éxito", "Usuario registrado correctamente")
         self.back_to_login()
@@ -95,42 +119,68 @@ class InventoryApp:
         password = self.entry_password.get()
         hashed_password = self.hash_password(password)
 
-        if username in self.users and self.users[username] == hashed_password:
+        if username in self.users and self.users[username]["password"] == hashed_password:
             self.current_user = username
+            self.current_user_image = self.users[username]["profile_image"]
             self.login_frame.destroy()
+            self.show_profile_image()
             self.setup_ui()
         else:
             messagebox.showerror("Error", "Usuario o contraseña incorrectos")
+
+    def show_profile_image(self):
+        if self.current_user_image:
+            try:
+                img = PhotoImage(file=self.current_user_image)
+                self.profile_image_label = ttk.Label(self.root, image=img)
+                self.profile_image_label.image = img  # Guardar referencia para evitar que se recolecte como basura
+                self.profile_image_label.grid(row=0, column=1, padx=10, pady=10)
+            except Exception as e:
+                messagebox.showerror("Error", f"No se pudo cargar la imagen de perfil: {e}")
 
     def setup_ui(self):
         # Frame para agregar productos
         frame_add = ttk.LabelFrame(self.root, text="Agregar Producto", bootstyle=PRIMARY)
         frame_add.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
 
-        ttk.Label(frame_add, text="Nombre:").grid(row=0, column=0, padx=5, pady=5)
+        ttk.Label(frame_add, text="ID:").grid(row=0, column=0, padx=5, pady=5)
+        self.entry_id = ttk.Entry(frame_add, bootstyle=INFO)
+        self.entry_id.grid(row=0, column=1, padx=5, pady=5)
+
+        ttk.Label(frame_add, text="Nombre:").grid(row=1, column=0, padx=5, pady=5)
         self.entry_name = ttk.Entry(frame_add, bootstyle=INFO)
-        self.entry_name.grid(row=0, column=1, padx=5, pady=5)
+        self.entry_name.grid(row=1, column=1, padx=5, pady=5)
 
-        ttk.Label(frame_add, text="Cantidad:").grid(row=1, column=0, padx=5, pady=5)
+        ttk.Label(frame_add, text="Cantidad:").grid(row=2, column=0, padx=5, pady=5)
         self.entry_quantity = ttk.Entry(frame_add, bootstyle=INFO)
-        self.entry_quantity.grid(row=1, column=1, padx=5, pady=5)
+        self.entry_quantity.grid(row=2, column=1, padx=5, pady=5)
 
-        ttk.Label(frame_add, text="Precio:").grid(row=2, column=0, padx=5, pady=5)
+        ttk.Label(frame_add, text="Precio:").grid(row=3, column=0, padx=5, pady=5)
         self.entry_price = ttk.Entry(frame_add, bootstyle=INFO)
-        self.entry_price.grid(row=2, column=1, padx=5, pady=5)
+        self.entry_price.grid(row=3, column=1, padx=5, pady=5)
 
-        ttk.Button(frame_add, text="Agregar", command=self.add_product, bootstyle=SUCCESS).grid(row=3, column=0, columnspan=2, pady=10)
+        ttk.Button(frame_add, text="Agregar", command=self.add_product, bootstyle=SUCCESS).grid(row=4, column=0, columnspan=2, pady=10)
+
+        # Barra de búsqueda
+        frame_search = ttk.LabelFrame(self.root, text="Buscar Producto", bootstyle=PRIMARY)
+        frame_search.grid(row=1, column=0, padx=10, pady=10, sticky="ew")
+
+        ttk.Label(frame_search, text="Buscar por ID o Nombre:").grid(row=0, column=0, padx=5, pady=5)
+        self.entry_search = ttk.Entry(frame_search, bootstyle=INFO)
+        self.entry_search.grid(row=0, column=1, padx=5, pady=5)
+        ttk.Button(frame_search, text="Buscar", command=self.search_product, bootstyle=SUCCESS).grid(row=0, column=2, padx=5, pady=5)
 
         # Tabla para mostrar el inventario
-        self.tree = ttk.Treeview(self.root, columns=("Nombre", "Cantidad", "Precio"), show="headings", bootstyle=INFO)
+        self.tree = ttk.Treeview(self.root, columns=("ID", "Nombre", "Cantidad", "Precio"), show="headings", bootstyle=INFO)
+        self.tree.heading("ID", text="ID")
         self.tree.heading("Nombre", text="Nombre")
         self.tree.heading("Cantidad", text="Cantidad")
         self.tree.heading("Precio", text="Precio")
-        self.tree.grid(row=1, column=0, padx=10, pady=10)
+        self.tree.grid(row=2, column=0, padx=10, pady=10)
 
         # Botones para importar, exportar, enviar, recibir, chatear y cambiar contraseña
         frame_actions = ttk.Frame(self.root)
-        frame_actions.grid(row=2, column=0, pady=10)
+        frame_actions.grid(row=3, column=0, pady=10)
 
         ttk.Button(frame_actions, text="Importar desde Excel", command=self.import_from_excel, bootstyle=PRIMARY).grid(row=0, column=0, padx=5)
         ttk.Button(frame_actions, text="Importar desde JSON", command=self.import_from_json, bootstyle=PRIMARY).grid(row=0, column=1, padx=5)
@@ -140,9 +190,10 @@ class InventoryApp:
         ttk.Button(frame_actions, text="Recibir por Red", command=self.receive_inventory, bootstyle=WARNING).grid(row=0, column=5, padx=5)
         ttk.Button(frame_actions, text="Chatear", command=self.open_chat_window, bootstyle=INFO).grid(row=0, column=6, padx=5)
         ttk.Button(frame_actions, text="Cambiar Contraseña", command=self.show_change_password_screen, bootstyle=INFO).grid(row=0, column=7, padx=5)
+        ttk.Button(frame_actions, text="Eliminar Seleccionados", command=self.delete_selected_products, bootstyle=DANGER).grid(row=0, column=8, padx=5)
 
         if self.current_user == "admin":
-            ttk.Button(frame_actions, text="Borrar Usuario", command=self.show_delete_user_screen, bootstyle=DANGER).grid(row=0, column=8, padx=5)
+            ttk.Button(frame_actions, text="Borrar Usuario", command=self.show_delete_user_screen, bootstyle=DANGER).grid(row=0, column=9, padx=5)
 
     def show_delete_user_screen(self):
         self.delete_user_frame = ttk.Toplevel(self.root)
@@ -224,11 +275,12 @@ class InventoryApp:
         self.chat_display.config(state="disabled")
 
     def add_product(self):
+        product_id = self.entry_id.get()
         name = self.entry_name.get()
         quantity = self.entry_quantity.get()
         price = self.entry_price.get()
 
-        if not name or not quantity or not price:
+        if not product_id or not name or not quantity or not price:
             messagebox.showerror("Error", "Todos los campos son obligatorios")
             return
 
@@ -239,13 +291,32 @@ class InventoryApp:
             messagebox.showerror("Error", "Cantidad debe ser un número entero y Precio un número decimal")
             return
 
-        self.inventory.append({"Nombre": name, "Cantidad": quantity, "Precio": price})
-        self.tree.insert("", "end", values=(name, quantity, price))
+        self.inventory.append({"ID": product_id, "Nombre": name, "Cantidad": quantity, "Precio": price})
+        self.tree.insert("", "end", values=(product_id, name, quantity, price))
         self.save_inventory()
 
+        self.entry_id.delete(0, tk.END)
         self.entry_name.delete(0, tk.END)
         self.entry_quantity.delete(0, tk.END)
         self.entry_price.delete(0, tk.END)
+
+    def search_product(self):
+        query = self.entry_search.get().strip().lower()
+
+        # Limpiar la tabla antes de mostrar los resultados
+        for item in self.tree.get_children():
+            self.tree.delete(item)
+
+        # Filtrar productos por ID o Nombre
+        for product in self.inventory:
+            product_id = product.get("ID", "").lower()
+            product_name = product.get("Nombre", "").lower()
+            if query in product_id or query in product_name:
+                self.tree.insert("", "end", values=(product.get("ID", ""), product.get("Nombre", ""), product.get("Cantidad", 0), product.get("Precio", 0.0)))
+
+        # Mostrar mensaje si no se encuentran resultados
+        if not self.tree.get_children():
+            messagebox.showinfo("Sin resultados", "No se encontraron productos que coincidan con la búsqueda.")
 
     def save_inventory(self):
         with open(self.inventory_file, "w", encoding="utf-8") as f:
@@ -284,7 +355,7 @@ class InventoryApp:
                     received_inventory = json.loads(data.decode("utf-8"))
                     for product in received_inventory:
                         self.inventory.append(product)
-                        self.tree.insert("", "end", values=(product["Nombre"], product["Cantidad"], product["Precio"]))
+                        self.tree.insert("", "end", values=(product["ID"], product["Nombre"], product["Cantidad"], product["Precio"]))
                     self.save_inventory()
                     messagebox.showinfo("Éxito", "Inventario recibido correctamente")
         except Exception as e:
@@ -325,12 +396,13 @@ class InventoryApp:
             df = pd.read_excel(file_path)
             for _, row in df.iterrows():
                 product = {
+                    "ID": row["ID"],
                     "Nombre": row["Nombre"],
                     "Cantidad": int(row["Cantidad"]),
                     "Precio": float(row["Precio"])
                 }
                 self.inventory.append(product)
-                self.tree.insert("", "end", values=(product["Nombre"], product["Cantidad"], product["Precio"]))
+                self.tree.insert("", "end", values=(product["ID"], product["Nombre"], product["Cantidad"], product["Precio"]))
             messagebox.showinfo("Éxito", "Inventario importado desde Excel correctamente")
         except Exception as e:
             messagebox.showerror("Error", f"No se pudo importar el archivo: {e}")
@@ -345,7 +417,7 @@ class InventoryApp:
                 data = json.load(f)
                 for product in data:
                     self.inventory.append(product)
-                    self.tree.insert("", "end", values=(product["Nombre"], product["Cantidad"], product["Precio"]))
+                    self.tree.insert("", "end", values=(product["ID"], product["Nombre"], product["Cantidad"], product["Precio"]))
             messagebox.showinfo("Éxito", "Inventario importado desde JSON correctamente")
         except Exception as e:
             messagebox.showerror("Error", f"No se pudo importar el archivo: {e}")
@@ -377,7 +449,7 @@ class InventoryApp:
             messagebox.showerror("Error", "Todos los campos son obligatorios")
             return
 
-        if self.hash_password(current_password) != self.users[self.current_user]:
+        if self.hash_password(current_password) != self.users[self.current_user]["password"]:
             messagebox.showerror("Error", "La contraseña actual es incorrecta")
             return
 
@@ -385,10 +457,24 @@ class InventoryApp:
             messagebox.showerror("Error", "Las contraseñas no coinciden")
             return
 
-        self.users[self.current_user] = self.hash_password(new_password)
+        self.users[self.current_user]["password"] = self.hash_password(new_password)
         self.save_users()
         messagebox.showinfo("Éxito", "Contraseña cambiada correctamente")
         self.change_password_frame.destroy()
+
+    def delete_selected_products(self):
+        selected_items = self.tree.selection()
+        if not selected_items:
+            messagebox.showerror("Error", "No hay elementos seleccionados para eliminar.")
+            return
+
+        for item in selected_items:
+            values = self.tree.item(item, "values")
+            self.inventory = [product for product in self.inventory if product.get("ID") != values[0]]
+            self.tree.delete(item)
+
+        self.save_inventory()
+        messagebox.showinfo("Éxito", "Elementos seleccionados eliminados correctamente.")
 
 if __name__ == "__main__":
     app = ttk.Window(themename="darkly")

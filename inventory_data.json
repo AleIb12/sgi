@@ -3,5 +3,39 @@
         "Nombre": "jabones ",
         "Cantidad": 2,
         "Precio": 200.0
+    },
+    {
+        "Nombre": "barco",
+        "Cantidad": 2,
+        "Precio": 30.0
+    },
+    {
+        "ID": "27",
+        "Nombre": "jabon",
+        "Cantidad": 20,
+        "Precio": 2000.0
+    },
+    {
+        "ID": "12",
+        "Nombre": "jugos",
+        "Cantidad": 20,
+        "Precio": 200.0
+    },
+    {
+        "Nombre": "jabones ",
+        "Cantidad": 2,
+        "Precio": 200.0
+    },
+    {
+        "ID": "12",
+        "Nombre": "jugo",
+        "Cantidad": 20,
+        "Precio": 2.0
+    },
+    {
+        "ID": "12",
+        "Nombre": "jugo",
+        "Cantidad": 2,
+        "Precio": 10.0
     }
 ]
